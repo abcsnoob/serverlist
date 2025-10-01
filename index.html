@@ -78,20 +78,19 @@
       getFirestore, collection, getDocs, addDoc, doc, getDoc 
     } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
     import { 
-      getAuth, signInAnonymously, signInWithPopup, GoogleAuthProvider, GithubAuthProvider, FacebookAuthProvider 
+      getAuth, signInAnonymously 
     } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
     // TODO: Thay config của bạn
-const firebaseConfig = {
-  apiKey: "AIzaSyDtcs0XkNhf7yFRTzPY-A9WYet35YjQVT8",
-  authDomain: "abc-s-noob.firebaseapp.com",
-  databaseURL: "https://abc-s-noob-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "abc-s-noob",
-  storageBucket: "abc-s-noob.firebasestorage.app",
-  messagingSenderId: "196660846002",
-  appId: "1:196660846002:web:ce129820f388cc838658ab",
-  measurementId: "G-LG5SWH89MG"
-};
+    const firebaseConfig = {
+      apiKey: "AIzaSyDtcs0XkNhf7yFRTzPY-A9WYet35YjQVT8",
+      authDomain: "abc-s-noob.firebaseapp.com",
+      projectId: "abc-s-noob",
+      storageBucket: "abc-s-noob.firebasestorage.app",
+      messagingSenderId: "196660846002",
+      appId: "1:196660846002:web:ce129820f388cc838658ab",
+      measurementId: "G-LG5SWH89MG"
+    };
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
@@ -113,7 +112,7 @@ const firebaseConfig = {
         div.className = "banner";
         div.innerHTML = `
           <a href="?server-id=${docSnap.id}">
-            <img src="data:${data.type};base64,${data.image}" alt="Banner">
+            <img src="?img-banner=${docSnap.id}" alt="Banner">
           </a>
           <div class="info">
             <strong>${data.name}</strong> - ${data.ip}<br>
@@ -175,7 +174,7 @@ const firebaseConfig = {
       const data = snap.data();
       container.innerHTML = `
         <h2>${data.name}</h2>
-        <img src="data:${data.type};base64,${data.image}" style="max-width:100%;border-radius:10px;">
+        <img src="?img-banner=${id}" style="max-width:100%;border-radius:10px;">
         <p><strong>IP:</strong> <span id="ipText">${data.ip}</span> 
           <button class="btn" onclick="navigator.clipboard.writeText('${data.ip}')">📋 Copy</button></p>
         <p><strong>Mô tả:</strong> ${data.desc}</p>
@@ -186,10 +185,25 @@ const firebaseConfig = {
       `;
     }
 
+    async function renderBanner(id) {
+      const docRef = doc(db, "servers", id);
+      const snap = await getDoc(docRef);
+      if (!snap.exists()) {
+        document.body.innerHTML = "<p>❌ Không tìm thấy banner</p>";
+        return;
+      }
+      const data = snap.data();
+      document.body.innerHTML = `<img src="data:${data.type};base64,${data.image}" style="max-width:100%">`;
+    }
+
     // Router logic
     const tab = getQueryParam("tab");
     const serverId = getQueryParam("server-id");
-    if (serverId) {
+    const imgBanner = getQueryParam("img-banner");
+
+    if (imgBanner) {
+      renderBanner(imgBanner);
+    } else if (serverId) {
       renderServer(serverId);
     } else if (tab === "upload") {
       renderUpload();
