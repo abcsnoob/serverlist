@@ -81,7 +81,7 @@
       getAuth, signInAnonymously 
     } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
-    // Config Firebase (của bạn)
+    // Config Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyDtcs0XkNhf7yFRTzPY-A9WYet35YjQVT8",
       authDomain: "abc-s-noob.firebaseapp.com",
@@ -194,7 +194,6 @@
       }
       const data = snap.data();
 
-      // Thay toàn bộ body bằng ảnh
       document.body.innerHTML = "";
       const img = document.createElement("img");
       img.src = `data:${data.type};base64,${data.image}`;
@@ -204,13 +203,29 @@
       document.body.appendChild(img);
     }
 
+    async function renderRawBanner(id) {
+      const docRef = doc(db, "servers", id);
+      const snap = await getDoc(docRef);
+      if (!snap.exists()) {
+        document.write("❌ Không tìm thấy banner");
+        return;
+      }
+      const data = snap.data();
+
+      // Xuất chuỗi base64 thuần
+      document.body.innerHTML = `<pre>data:${data.type};base64,${data.image}</pre>`;
+    }
+
     // Router logic
     const tab = getQueryParam("tab");
     const serverId = getQueryParam("server-id");
     const imgBanner = getQueryParam("img-banner");
+    const rawBanner = getQueryParam("raw-banner");
 
     if (imgBanner) {
       renderBanner(imgBanner);
+    } else if (rawBanner) {
+      renderRawBanner(rawBanner);
     } else if (serverId) {
       renderServer(serverId);
     } else if (tab === "upload") {
