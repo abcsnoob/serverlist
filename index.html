@@ -1,2 +1,105 @@
-Đang code
-Tao ghét brainrot!
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Minecraft Server List</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f2f5;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+    }
+    #serverList {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 20px;
+      margin-top: 20px;
+    }
+    .server {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+      padding: 15px;
+      text-align: center;
+      transition: transform 0.2s;
+    }
+    .server:hover {
+      transform: scale(1.02);
+    }
+    .server img {
+      max-width: 100%;
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
+    .server h3 {
+      margin: 5px 0;
+      color: #333;
+    }
+    .server p {
+      margin: 3px 0;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <h1>🌍 Minecraft Server List</h1>
+  <div id="serverList">Đang tải server...</div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+    import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+    // 🔹 Cấu hình Firebase
+    const firebaseConfig = {
+      apiKey: "AIza....", // thay bằng key của bạn
+      authDomain: "xom-co-thu-cung.firebaseapp.com",
+      projectId: "xom-co-thu-cung",
+      storageBucket: "xom-co-thu-cung.appspot.com",
+      messagingSenderId: "123456789",
+      appId: "YjNjNGIxZmItNTI1Yi00N2M4LWFiMzItYWI3ZjJhMWQ2ZjFh"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    async function loadServers() {
+      const serverList = document.querySelector("#serverList");
+      serverList.innerHTML = "";
+
+      const servers = await getDocs(collection(db, "servers"));
+
+      for (const serverDoc of servers.docs) {
+        const s = serverDoc.data();
+
+        // 🔹 Lấy banner từ collection banners
+        let bannerBase64 = "";
+        if (s.bannerId) {
+          const bannerDoc = await getDoc(doc(db, "banners", s.bannerId));
+          if (bannerDoc.exists()) {
+            bannerBase64 = bannerDoc.data().base64;
+          }
+        }
+
+        serverList.innerHTML += `
+          <div class="server">
+            <img src="data:image/png;base64,${bannerBase64}">
+            <h3>${s.name}</h3>
+            <p>${s.description}</p>
+            <p><b>IP:</b> ${s.ip}:${s.port}</p>
+          </div>
+        `;
+      }
+
+      if (servers.empty) {
+        serverList.innerHTML = "<p>Chưa có server nào được thêm!</p>";
+      }
+    }
+
+    loadServers();
+  </script>
+</body>
+</html>
