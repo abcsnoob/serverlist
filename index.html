@@ -212,8 +212,27 @@
       }
       const data = snap.data();
 
-      // Xuất chuỗi base64 thuần
       document.body.innerHTML = `<pre>data:${data.type};base64,${data.image}</pre>`;
+    }
+
+    async function renderServerJSON(id) {
+      const docRef = doc(db, "servers", id);
+      const snap = await getDoc(docRef);
+      if (!snap.exists()) {
+        document.body.innerHTML = "<pre>{\"error\":\"Server not found\"}</pre>";
+        return;
+      }
+      const data = snap.data();
+      const obj = {
+        id: id,
+        name: data.name,
+        ip: data.ip,
+        desc: data.desc,
+        uploadedBy: data.uploadedBy,
+        uploadedAt: data.uploadedAt?.toDate ? data.uploadedAt.toDate().toISOString() : null,
+        banner: `?img-banner=${id}`
+      };
+      document.body.innerHTML = "<pre>"+JSON.stringify(obj,null,2)+"</pre>";
     }
 
     // Router logic
@@ -221,11 +240,14 @@
     const serverId = getQueryParam("server-id");
     const imgBanner = getQueryParam("img-banner");
     const rawBanner = getQueryParam("raw-banner");
+    const serverJson = getQueryParam("server-json");
 
     if (imgBanner) {
       renderBanner(imgBanner);
     } else if (rawBanner) {
       renderRawBanner(rawBanner);
+    } else if (serverJson) {
+      renderServerJSON(serverJson);
     } else if (serverId) {
       renderServer(serverId);
     } else if (tab === "upload") {
