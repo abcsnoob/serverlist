@@ -4,104 +4,218 @@
   <meta charset="UTF-8">
   <title>Minecraft Server List</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f0f2f5;
-      margin: 0;
-      padding: 20px;
-    }
-    h1 {
-      text-align: center;
-    }
-    #serverList {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      gap: 20px;
-      margin-top: 20px;
-    }
-    .server {
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9; }
+    h1 { margin-bottom: 10px; }
+    .auth, .upload, .banners, .detail { margin-bottom: 30px; }
+    .banner {
+      margin: 15px 0;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
       background: white;
-      border-radius: 12px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-      padding: 15px;
-      text-align: center;
-      transition: transform 0.2s;
+      cursor: pointer;
+      max-width: 600px;
     }
-    .server:hover {
-      transform: scale(1.02);
+    .banner img { max-width: 100%; border-radius: 8px; }
+    .info { margin-top: 5px; font-size: 14px; color: #555; }
+    .detail {
+      border: 1px solid #ccc;
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 600px;
     }
-    .server img {
-      max-width: 100%;
-      border-radius: 8px;
-      margin-bottom: 10px;
-    }
-    .server h3 {
-      margin: 5px 0;
-      color: #333;
-    }
-    .server p {
-      margin: 3px 0;
-      color: #555;
-    }
+    .detail img { max-width: 100%; border-radius: 8px; margin-bottom: 10px; }
+    button { margin: 5px; padding: 6px 12px; }
   </style>
-</head>
-<body>
-  <h1>🌍 Minecraft Server List</h1>
-  <div id="serverList">Đang tải server...</div>
-
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-    import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+    import { 
+      getFirestore, collection, addDoc, getDocs, query, orderBy, doc, getDoc 
+    } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+    import { 
+      getAuth, signInWithPopup, signInAnonymously, signOut, 
+      GoogleAuthProvider, FacebookAuthProvider, GithubAuthProvider, 
+      onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
-    // 🔹 Cấu hình Firebase
-const firebaseConfig = {
-  apiKey: "AIzaSyDtcs0XkNhf7yFRTzPY-A9WYet35YjQVT8",
-  authDomain: "abc-s-noob.firebaseapp.com",
-  databaseURL: "https://abc-s-noob-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "abc-s-noob",
-  storageBucket: "abc-s-noob.firebasestorage.app",
-  messagingSenderId: "196660846002",
-  appId: "1:196660846002:web:ce129820f388cc838658ab",
-  measurementId: "G-LG5SWH89MG"
-};
+    // TODO: thay bằng config của bạn
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT.firebaseapp.com",
+      projectId: "YOUR_PROJECT",
+      storageBucket: "YOUR_PROJECT.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
+    const auth = getAuth(app);
 
-    async function loadServers() {
-      const serverList = document.querySelector("#serverList");
-      serverList.innerHTML = "";
+    const googleProvider = new GoogleAuthProvider();
+    const facebookProvider = new FacebookAuthProvider();
+    const githubProvider = new GithubAuthProvider();
 
-      const servers = await getDocs(collection(db, "servers"));
+    // Đăng nhập / đăng xuất
+    async function loginGoogle() { await signInWithPopup(auth, googleProvider); }
+    async function loginFacebook() { await signInWithPopup(auth, facebookProvider); }
+    async function loginGithub() { await signInWithPopup(auth, githubProvider); }
+    async function loginGuest() { await signInAnonymously(auth); }
+    async function logout() { await signOut(auth); }
 
-      for (const serverDoc of servers.docs) {
-        const s = serverDoc.data();
+    // Upload server
+    async function uploadServer(event) {
+      event.preventDefault();
+      const user = auth.currentUser;
+      if (!user) { alert("Hãy đăng nhập trước!"); return; }
 
-        // 🔹 Lấy banner từ collection banners
-        let bannerBase64 = "";
-        if (s.bannerId) {
-          const bannerDoc = await getDoc(doc(db, "banners", s.bannerId));
-          if (bannerDoc.exists()) {
-            bannerBase64 = bannerDoc.data().base64;
-          }
-        }
+      const name = document.getElementById("serverName").value;
+      const ip = document.getElementById("serverIP").value;
+      const desc = document.getElementById("serverDesc").value;
+      const file = document.getElementById("fileInput").files[0];
+      if (!file) { alert("Chọn ảnh!"); return; }
+      if (file.size > 1024*1024) { alert("Ảnh quá lớn (<1MB)!"); return; }
 
-        serverList.innerHTML += `
-          <div class="server">
-            <img src="data:image/png;base64,${bannerBase64}">
-            <h3>${s.name}</h3>
-            <p>${s.description}</p>
-            <p><b>IP:</b> ${s.ip}:${s.port}</p>
-          </div>
-        `;
-      }
-
-      if (servers.empty) {
-        serverList.innerHTML = "<p>Chưa có server nào được thêm!</p>";
-      }
+      const reader = new FileReader();
+      reader.onload = async function(e) {
+        const base64Data = e.target.result.split(",")[1];
+        await addDoc(collection(db, "banners"), {
+          name, ip, desc,
+          image: base64Data,
+          type: file.type,
+          uid: user.uid,
+          uploadedBy: user.isAnonymous ? "Khách" : (user.displayName || user.email),
+          uploadedAt: new Date()
+        });
+        alert("Upload thành công!");
+        loadBanners();
+      };
+      reader.readAsDataURL(file);
     }
 
-    loadServers();
+    // Load danh sách server
+    async function loadBanners() {
+      const bannersDiv = document.getElementById("banners");
+      bannersDiv.innerHTML = "Đang tải...";
+      const q = query(collection(db, "banners"), orderBy("uploadedAt", "desc"));
+      const snapshot = await getDocs(q);
+
+      if (snapshot.empty) {
+        bannersDiv.innerHTML = "<p>Chưa có server nào.</p>";
+        return;
+      }
+
+      bannersDiv.innerHTML = "";
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        const imgSrc = `data:${data.type};base64,${data.image}`;
+        const uploadedBy = data.uploadedBy || "Ẩn danh";
+        const date = data.uploadedAt?.toDate ? data.uploadedAt.toDate().toLocaleString() : "";
+        const div = document.createElement("div");
+        div.className = "banner";
+        div.onclick = () => showDetail(docSnap.id);
+        div.innerHTML = `
+          <img src="${imgSrc}" alt="Banner">
+          <div class="info">
+            <strong>${data.name || "Server vô danh"}</strong><br>
+            Người upload: ${uploadedBy} | ${date}
+          </div>
+        `;
+        bannersDiv.appendChild(div);
+      });
+    }
+
+    // Hiển thị chi tiết server
+    async function showDetail(id) {
+      const docRef = doc(db, "banners", id);
+      const snapshot = await getDoc(docRef);
+      if (!snapshot.exists()) {
+        document.getElementById("detail").innerHTML = "<p>Server không tồn tại!</p>";
+        return;
+      }
+      const data = snapshot.data();
+      const imgSrc = `data:${data.type};base64,${data.image}`;
+      const date = data.uploadedAt?.toDate ? data.uploadedAt.toDate().toLocaleString() : "";
+
+      document.getElementById("detail").innerHTML = `
+        <h2>${data.name}</h2>
+        <img src="${imgSrc}" alt="Banner">
+        <p><strong>IP:</strong> ${data.ip} <button onclick="copyIP('${data.ip}')">Copy</button></p>
+        <p><strong>Mô tả:</strong> ${data.desc}</p>
+        <div class="info">
+          Upload bởi: ${data.uploadedBy || "Ẩn danh"}<br>
+          Lúc: ${date}
+        </div>
+        <button onclick="document.getElementById('detail').innerHTML=''">Đóng</button>
+      `;
+    }
+
+    // Copy IP
+    function copyIP(ip) {
+      navigator.clipboard.writeText(ip);
+      alert("Đã copy IP: " + ip);
+    }
+
+    // Theo dõi đăng nhập
+    onAuthStateChanged(auth, (user) => {
+      const status = document.getElementById("status");
+      if (user) {
+        status.innerText = `Đăng nhập: ${user.isAnonymous ? "Khách" : (user.displayName || user.email)}`;
+        document.getElementById("loginButtons").style.display = "none";
+        document.getElementById("logoutBtn").style.display = "inline-block";
+        document.getElementById("uploadForm").style.display = "block";
+      } else {
+        status.innerText = "Chưa đăng nhập";
+        document.getElementById("loginButtons").style.display = "block";
+        document.getElementById("logoutBtn").style.display = "none";
+        document.getElementById("uploadForm").style.display = "none";
+      }
+    });
+
+    window.loginGoogle = loginGoogle;
+    window.loginFacebook = loginFacebook;
+    window.loginGithub = loginGithub;
+    window.loginGuest = loginGuest;
+    window.logout = logout;
+    window.uploadServer = uploadServer;
+    window.copyIP = copyIP;
+    window.showDetail = showDetail;
+    window.onload = loadBanners;
   </script>
+</head>
+<body>
+  <h1>Minecraft Server List</h1>
+  <p id="status">Chưa đăng nhập</p>
+
+  <!-- Nút login -->
+  <div id="loginButtons">
+    <button onclick="loginGoogle()">Login Google</button>
+    <button onclick="loginFacebook()">Login Facebook</button>
+    <button onclick="loginGithub()">Login GitHub</button>
+    <button onclick="loginGuest()">Login Khách</button>
+  </div>
+  <button id="logoutBtn" onclick="logout()" style="display:none;">Đăng xuất</button>
+
+  <!-- Upload -->
+  <div class="upload" id="uploadForm" style="display:none;">
+    <h2>Thêm Server</h2>
+    <form onsubmit="uploadServer(event)">
+      <input type="text" id="serverName" placeholder="Tên server" required><br>
+      <input type="text" id="serverIP" placeholder="IP server" required><br>
+      <textarea id="serverDesc" placeholder="Mô tả server" required></textarea><br>
+      <input type="file" id="fileInput" accept="image/*" required><br>
+      <button type="submit">Upload</button>
+    </form>
+  </div>
+
+  <!-- Danh sách servers -->
+  <div class="banners">
+    <h2>Danh sách Servers</h2>
+    <div id="banners"></div>
+  </div>
+
+  <!-- Chi tiết server -->
+  <div class="detail" id="detail"></div>
 </body>
 </html>
