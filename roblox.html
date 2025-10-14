@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Danh sách game Roblox</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background: #0d1117;
+      color: #fff;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      color: #58a6ff;
+    }
+    .game-list {
+      max-width: 700px;
+      margin: 20px auto;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    .game {
+      background: #161b22;
+      padding: 15px;
+      border-radius: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .creator {
+      font-size: 0.9em;
+      color: #aaa;
+    }
+    .add-form {
+      max-width: 700px;
+      margin: 20px auto;
+      background: #161b22;
+      padding: 15px;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    input {
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      background: #0d1117;
+      color: white;
+    }
+    button {
+      background: #238636;
+      border: none;
+      padding: 10px 16px;
+      color: #fff;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    button:hover {
+      background: #2ea043;
+    }
+    footer {
+      max-width: 700px;
+      margin: 40px auto 10px;
+      text-align: center;
+      font-size: 0.8em;
+      color: #aaa;
+      border-top: 1px solid #222;
+      padding-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Danh sách game Roblox</h1>
+
+  <div class="game-list" id="gameList">Đang tải...</div>
+
+  <div class="add-form">
+    <h3>Thêm game mới</h3>
+    <input id="gameName" placeholder="Tên game" />
+    <input id="gameId" placeholder="ID Place Roblox (số)" />
+    <button onclick="addGame()">Kiểm tra và thêm</button>
+    <p id="status"></p>
+  </div>
+
+  <footer>
+    Roblox, logo Roblox và khẩu hiệu <b>Powering Imagination</b> là nhãn hiệu đã hoặc chưa đăng ký của Roblox Corporation.<br>
+    Logo <b>Abc's Noob</b> là logo chưa đăng ký của Abc's Noob.
+  </footer>
+
+  <script>
+    async function loadGames() {
+      try {
+        const res = await fetch("https://abcsmc.42web.io/roblox.json");
+        const data = await res.json();
+        const list = document.getElementById("gameList");
+        list.innerHTML = "";
+
+        data.forEach(game => {
+          const div = document.createElement("div");
+          div.className = "game";
+          div.innerHTML = `
+            <div class="info">
+              <strong>${game.name}</strong>
+              <span class="creator">${game.creator || "Không rõ nhà phát triển"}</span>
+            </div>
+            <button onclick="window.location.href='roblox://placeID=${game.id}'">Chơi</button>
+          `;
+          list.appendChild(div);
+        });
+      } catch (err) {
+        document.getElementById("gameList").innerText = "Không thể tải danh sách game.";
+        console.error(err);
+      }
+    }
+
+    async function addGame() {
+      const name = document.getElementById("gameName").value.trim();
+      const id = document.getElementById("gameId").value.trim();
+      const status = document.getElementById("status");
+
+      if (!name || !id) {
+        status.innerText = "⚠️ Vui lòng nhập đầy đủ thông tin.";
+        return;
+      }
+
+      status.innerText = "⏳ Đang kiểm tra ID...";
+      try {
+        const api = await fetch(`https://apis.roblox.com/universes/v1/places/${id}/universe`);
+        if (!api.ok) throw new Error("Không hợp lệ");
+
+        const json = await api.json();
+
+        // Nếu valid → thêm vào danh sách hiển thị tạm
+        const list = document.getElementById("gameList");
+        const div = document.createElement("div");
+        div.className = "game";
+        div.innerHTML = `
+          <div class="info">
+            <strong>${name}</strong>
+            <span class="creator">(Mới thêm - Universe ${json.universeId})</span>
+          </div>
+          <button onclick="window.location.href='roblox://placeID=${id}'">Chơi</button>
+        `;
+        list.appendChild(div);
+
+        status.innerText = "✅ Game hợp lệ và đã thêm!";
+      } catch (err) {
+        status.innerText = "❌ ID không hợp lệ hoặc game không tồn tại.";
+      }
+    }
+
+    loadGames();
+  </script>
+</body>
+</html>
